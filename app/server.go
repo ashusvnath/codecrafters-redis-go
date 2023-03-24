@@ -38,7 +38,7 @@ func main() {
 
 		inputString := string(input[:n])
 		fmt.Printf("C: %#v\n", inputString)
-		if inputString == "*1\r\nPING\r\n" {
+		if inputString == "*1\r\n$4\r\nping\r\n" {
 			response := "+PONG\r\n"
 			conn.Write([]byte(response))
 			fmt.Printf("S: %#v\n", response)
