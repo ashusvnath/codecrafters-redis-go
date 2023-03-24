@@ -18,9 +18,30 @@ func main() {
 		fmt.Println("Failed to bind to port 6379")
 		os.Exit(1)
 	}
-	_, err = l.Accept()
+	conn, err := l.Accept()
 	if err != nil {
 		fmt.Println("Error accepting connection: ", err.Error())
 		os.Exit(1)
+	}
+	fmt.Println("Connection successful!!")
+	for {
+		input := make([]byte, 100)
+		n, err := conn.Read(input)
+		if err != nil {
+			fmt.Println("Error reading from connection: ", err.Error())
+			if err.Error() == "EOF"{
+				fmt.Println("Closing connection and existing.")
+				os.Exit(0)
+			}
+			os.Exit(1)
+		}
+
+		inputString := string(input[:n])
+		fmt.Printf("C: %#v\n", inputString)
+		if inputString == "*1\r\nPING\r\n" {
+			response := "+PONG\r\n"
+			conn.Write([]byte(response))
+			fmt.Printf("S: %#v\n", response)
+		}
 	}
 }
