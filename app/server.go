@@ -30,7 +30,7 @@ func main() {
 		if err != nil {
 			fmt.Println("Error reading from connection: ", err.Error())
 			if err.Error() == "EOF"{
-				fmt.Println("Closing connection and existing.")
+				fmt.Println("Closing connection and exiting.")
 				os.Exit(0)
 			}
 			os.Exit(1)
