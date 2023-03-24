@@ -30,7 +30,7 @@ func main() {
 func handleConnection(conn net.Conn) {
 	fmt.Println("Connection successful!!")
 	for {
-		input := make([]byte, 100)
+		input := make([]byte, 1024)
 		n, err := conn.Read(input)
 		if err != nil {
 			fmt.Println("Error reading from connection: ", err.Error())
@@ -49,7 +49,9 @@ func handleConnection(conn net.Conn) {
 			conn.Write([]byte(response))
 			fmt.Printf("S: %#v\n", response)
 		case "*1\r\n$4\r\ninfo\r\n":
-			conn.Write([]byte("+Test redis server\r\n"))
+			response := "+INFO\r\n"
+			conn.Write([]byte(response))
+			fmt.Printf("S: %#v\n", response)
 		}
 	}
 }
