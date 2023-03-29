@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+
 	// Uncomment this block to pass the first stage
 	"net"
 	"os"
@@ -29,29 +31,31 @@ func main() {
 }
 func handleConnection(conn net.Conn) {
 	fmt.Println("Connection successful!!")
+	parser := NewRESPParser(conn)
 	for {
-		input := make([]byte, 1024)
-		n, err := conn.Read(input)
+
+		list, err := parser.GetRequest()
 		if err != nil {
-			fmt.Println("Error reading from connection: ", err.Error())
-			if err.Error() == "EOF" {
-				fmt.Println("Closing connection.")
-				return
-			}
+			fmt.Printf("Error encountered while reading request: %v. Closing connection", err)
+			return
+		}
+		if list.Size() <= 0 {
+			fmt.Printf("Error encountered while reading request: %v. Closing connection", err)
 			return
 		}
 
-		inputString := string(input[:n])
-		fmt.Printf("C: %#v\n", inputString)
-		switch inputString {
-		case "*1\r\n$4\r\nping\r\n":
-			response := "+PONG\r\n"
-			conn.Write([]byte(response))
-			fmt.Printf("S: %#v\n", response)
-		case "*1\r\n$4\r\ninfo\r\n":
-			response := "+INFO\r\n"
-			conn.Write([]byte(response))
-			fmt.Printf("S: %#v\n", response)
+		command := list.Next()
+		switch command {
+		case String("info"):
+			conn.Write([]byte("+go-redis-test\r\n"))
+		case String("echo"):
+			message := list.Next().String()
+			buf := bytes.NewBufferString("+")
+			buf.WriteString(message)
+			buf.WriteString("\r\n")
+			conn.Write(buf.Bytes())
+		case String("ping"):
+			conn.Write([]byte("+pong\r\n"))
 		}
 	}
 }
