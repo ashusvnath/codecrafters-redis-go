@@ -55,7 +55,7 @@ func handleConnection(conn net.Conn) {
 			buf.WriteString("\r\n")
 			conn.Write(buf.Bytes())
 		case String("ping"):
-			conn.Write([]byte("+pong\r\n"))
+			conn.Write([]byte("+PONG\r\n"))
 		}
 	}
 }
