@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	// Uncomment this block to pass the first stage
 	"net"
@@ -31,31 +32,43 @@ func main() {
 }
 func handleConnection(conn net.Conn) {
 	fmt.Println("Connection successful!!")
-	parser := NewRESPParser(conn)
+	parser := NewSimpleParser(conn)
 	for {
-
-		list, err := parser.GetRequest()
+		val, err := parser.Next()
+		fmt.Printf("Received command %s\n", val)
 		if err != nil {
-			fmt.Printf("Error encountered while reading request: %v. Closing connection", err)
+			errorString := fmt.Sprintf("ERROR encountered while reading request: %v. Closing connection", err)
+			fmt.Printf(errorString + "\n")
+			errorString = "-" + errorString + "\r\n"
+			conn.Write([]byte(errorString))
 			return
 		}
-		if list.Size() <= 0 {
-			fmt.Printf("Error encountered while reading request: %v. Closing connection", err)
+		list, ok := val.val.(*SList)
+		if !ok || list.Size() == 0 {
+			errorString := "ERROR 0 argument list"
+			fmt.Printf(errorString + "\n")
+			errorString = "-" + errorString + "\r\n"
+			conn.Write([]byte(errorString))
 			return
 		}
 
-		command := list.Next()
+		command := strings.ToLower(list.Next().String())
 		switch command {
-		case String("info"):
-			conn.Write([]byte("+go-redis-test\r\n"))
-		case String("echo"):
+		case "command":
+			// subcommand := strings.ToLower(list.Next().String())
+			// if subcommand == "docs" {
+			// 	conn.Write([]byte("*3\r\n$4\r\nPING\r\n$4\r\nECHO\r\n$12\r\nCOMMAND DOCS\r\n"))
+			// }
+			// default:
+			conn.Write([]byte("$-1\r\n"))
+		case "echo":
 			message := list.Next().String()
 			buf := bytes.NewBufferString("+")
 			buf.WriteString(message)
 			buf.WriteString("\r\n")
 			conn.Write(buf.Bytes())
-		case String("ping"):
-			conn.Write([]byte("+PONG\r\n"))
+		case "ping":
+			conn.Write([]byte("$4\r\nPONG\r\n"))
 		}
 	}
 }

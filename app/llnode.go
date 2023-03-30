@@ -1,8 +1,14 @@
 package main
 
+import "fmt"
+
 type llnode[D any] struct {
 	data D
 	n    *llnode[D]
+}
+
+func (llnd *llnode[D]) String() string {
+	return fmt.Sprintf("%v %s", llnd.data, llnd.n)
 }
 
 func (llnd *llnode[D]) HasNext() bool {
@@ -17,7 +23,7 @@ func (llnd *llnode[D]) Next() llnode[D] {
 	return *llnd.n
 }
 
-func (llnd *llnode[D]) Append(data D) *llnode[D]{
+func (llnd *llnode[D]) Append(data D) *llnode[D] {
 	if llnd == nil {
 		return makeNode(data)
 	}

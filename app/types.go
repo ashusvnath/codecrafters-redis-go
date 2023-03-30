@@ -80,7 +80,7 @@ func (l *List) Value() (RESPPrimitive, _respType) {
 }
 
 func (l List) String() string {
-	return ""
+	return fmt.Sprintf("%d %s\n", l.size, l.data.String())
 }
 
 func (l List) Int() int {

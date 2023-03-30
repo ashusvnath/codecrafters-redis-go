@@ -17,7 +17,6 @@ func NewRESPParser(input io.Reader) *respParser {
 	scnr := scanner.Scanner{}
 	scnr.Init(input)
 	parser := &respParser{scnr, nil}
-	scnr.Whitespace = 1 << 11
 	scnr.Error = func(s *scanner.Scanner, msg string) {
 		parser.scanError = errors.New(msg)
 	}
@@ -64,31 +63,33 @@ repeat:
 		return
 	}
 
-	nextInputChar := p.scnr.Peek()
-	if nextInputChar < '0' || nextInputChar > '9' {
-		size = -1
-		return
+	i, err := p.readInteger()
+	if err != nil {
+		parseError = err
 	}
-
-	p.scnr.Mode = scanner.ScanInts
-	p.scnr.Scan()
-	size, parseError = strconv.Atoi(p.scnr.TokenText())
-	if p.scanError != nil {
-		parseError = p.scanError
-		p.scanError = nil
-	}
+	size = int(i)
 	return
 }
 
 func (p *respParser) readInteger() (Int, error) {
 	p.scnr.Mode = scanner.ScanInts
-	p.scnr.Scan()
-	if p.scanError != nil {
-		err := p.scanError
-		p.scanError = nil
-		return 0, err
+	input := []rune{}
+	for {
+		chr := p.scnr.Scan()
+		if p.scanError != nil {
+			err := p.scanError
+			p.scanError = nil
+			return 0, err
+		}
+		if chr == '\r' || chr == '\n' {
+			break
+		}
+		input = append(input, chr)
 	}
-	value, err := strconv.Atoi(p.scnr.TokenText())
+	if len(input) == 0 {
+		return 0, errors.New("could not read size, 0 length string")
+	}
+	value, err := strconv.Atoi(string(input))
 
 	if err != nil {
 		return 0, err
@@ -114,7 +115,7 @@ func (p *respParser) readBulkString(size int) (String, error) {
 func (p *respParser) readSimpleString() (String, error) {
 	p.scnr.Mode = scanner.ScanChars
 	value := []rune{}
-	for chr := p.scnr.Next(); chr!= rune('\r') && chr != rune('\n') && chr != scanner.EOF; chr = p.scnr.Next(){
+	for chr := p.scnr.Next(); chr != rune('\r') && chr != rune('\n') && chr != scanner.EOF; chr = p.scnr.Next() {
 		if p.scanError != nil {
 			err := p.scanError
 			p.scanError = nil
