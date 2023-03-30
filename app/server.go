@@ -33,6 +33,8 @@ func main() {
 func handleConnection(conn net.Conn) {
 	fmt.Println("Connection successful!!")
 	parser := NewSimpleParser(conn)
+
+	data := make(map[string]string)
 	for {
 		val, err := parser.Next()
 		fmt.Printf("Received command %s\n", val)
@@ -69,6 +71,21 @@ func handleConnection(conn net.Conn) {
 			conn.Write(buf.Bytes())
 		case "ping":
 			conn.Write([]byte("$4\r\nPONG\r\n"))
+		case "get":
+			key := list.Next().String()
+			result, ok := data[key]
+			var replyString string
+			if ok {
+				replyString = fmt.Sprintf("$%d\r\n%s\r\n", len(result), result)
+			} else {
+				replyString = fmt.Sprintf("-ERROR key %s not found", key)
+			}
+			conn.Write([]byte(replyString))
+		case "set":
+			key := list.Next().String()
+			val := list.Next().String()
+			data[key] = val
+			conn.Write([]byte("+OK\r\n"))
 		}
 	}
 }
