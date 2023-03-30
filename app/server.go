@@ -5,16 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	// Uncomment this block to pass the first stage
 	"net"
 	"os"
 )
 
 func main() {
-	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	fmt.Println("Logs from your program will appear here!")
-
-	// Uncomment this block to pass the first stage
 
 	l, err := net.Listen("tcp", "0.0.0.0:6379")
 	if err != nil {
@@ -57,11 +53,7 @@ func handleConnection(conn net.Conn) {
 		command := strings.ToLower(list.Next().String())
 		switch command {
 		case "command":
-			// subcommand := strings.ToLower(list.Next().String())
-			// if subcommand == "docs" {
-			// 	conn.Write([]byte("*3\r\n$4\r\nPING\r\n$4\r\nECHO\r\n$12\r\nCOMMAND DOCS\r\n"))
-			// }
-			// default:
+			//Won't implement COMMAND
 			conn.Write([]byte("$-1\r\n"))
 		case "echo":
 			message := list.Next().String()
