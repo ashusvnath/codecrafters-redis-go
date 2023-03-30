@@ -3,7 +3,9 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	"net"
 	"os"
@@ -26,6 +28,7 @@ func main() {
 		go handleConnection(conn)
 	}
 }
+
 func handleConnection(conn net.Conn) {
 	fmt.Println("Connection successful!!")
 	parser := NewSimpleParser(conn)
@@ -70,12 +73,22 @@ func handleConnection(conn net.Conn) {
 			if ok {
 				replyString = fmt.Sprintf("$%d\r\n%s\r\n", len(result), result)
 			} else {
-				replyString = fmt.Sprintf("-ERROR key %s not found", key)
+				replyString = "$-1\r\n" //Null bulk string
 			}
 			conn.Write([]byte(replyString))
 		case "set":
 			key := list.Next().String()
 			val := list.Next().String()
+			if list.Size() > 2 && list.Next().String() == "PX" {
+				timeoutMilliSecondString := list.Next().String()
+				timeoutMilliSeconds, err := strconv.Atoi(timeoutMilliSecondString)
+				if err != nil {
+					go func() {
+						time.Sleep(time.Millisecond * time.Duration(timeoutMilliSeconds))
+						delete(data, key)
+					}()
+				}
+			}
 			data[key] = val
 			conn.Write([]byte("+OK\r\n"))
 		}
