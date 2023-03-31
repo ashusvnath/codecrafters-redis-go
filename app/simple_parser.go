@@ -100,7 +100,7 @@ func readBulkString(bufReader *bufio.Reader) (result Value, err error) {
 	var n int
 	n, err = io.ReadFull(bufReader, bytesToRead)
 	if n < siz+2 || err != nil {
-		err = fmt.Errorf("could not read bulk string of length %d: %v", n, err)
+		err = fmt.Errorf("could not read bulk string of length %d: %v", siz, err)
 		return
 	}
 	result.val = string(bytesToRead[:len(bytesToRead)-2])

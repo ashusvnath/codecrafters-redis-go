@@ -8,6 +8,9 @@ type llnode[D any] struct {
 }
 
 func (llnd *llnode[D]) String() string {
+	if llnd == nil {
+		return "\b"
+	}
 	return fmt.Sprintf("%v %s", llnd.data, llnd.n)
 }
 

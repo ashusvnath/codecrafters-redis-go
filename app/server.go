@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -61,12 +59,9 @@ func handleConnection(conn net.Conn) {
 			conn.Write([]byte("$-1\r\n"))
 		case "echo":
 			message := list.Next().String()
-			buf := bytes.NewBufferString("+")
-			buf.WriteString(message)
-			buf.WriteString("\r\n")
-			conn.Write(buf.Bytes())
+			conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(message), message)))
 		case "ping":
-			conn.Write([]byte("$4\r\nPONG\r\n"))
+			conn.Write([]byte("+PONG\r\n"))
 		case "get":
 			key := list.Next().String()
 			result, ok := data[key]
@@ -80,25 +75,35 @@ func handleConnection(conn net.Conn) {
 		case "set":
 			key := list.Next().String()
 			val := list.Next().String()
-			if list.Size() == 2 && list.Next().String() == "PX" {
-				timeoutMilliSecondString := list.Next().String()
-				timeoutMilliSeconds, err := strconv.Atoi(timeoutMilliSecondString)
-				if err == nil {
-					fmt.Printf("Scheduling deletion of key %s in %d milliseconds", key, timeoutMilliSeconds)
-					time.AfterFunc(time.Millisecond*time.Duration(timeoutMilliSeconds), func() {
-						fmt.Printf("Deleting key %s", key)
-						delete(data, key)
-						fmt.Println("...Done")
-					})
+			if list.Size() == 2 {
+				option := strings.ToLower(list.Next().String())
+				if option == "px" {
+					timeoutMilliSecondString := list.Next().String()
+					timeoutMilliSeconds, err := strconv.Atoi(timeoutMilliSecondString)
+					if err == nil {
+						fmt.Printf("Scheduling deletion of key %s in %d milliseconds", key, timeoutMilliSeconds)
+						time.AfterFunc(time.Millisecond*time.Duration(timeoutMilliSeconds), func() {
+							fmt.Printf("Deleting key %s", key)
+							delete(data, key)
+							fmt.Println("...Done")
+						})
+					} else {
+						message := fmt.Sprintf("Error parsing timeout value '%s', %v", timeoutMilliSecondString, err)
+						fmt.Println(message)
+						conn.Write([]byte("-" + message + "\r\n"))
+						continue
+					}
 				} else {
-					message := fmt.Sprintf("Error parsing timeout value '%s', %v", timeoutMilliSecondString, err)
+					message := fmt.Sprintf("Error unknown option '%s'", option)
 					fmt.Println(message)
 					conn.Write([]byte("-" + message + "\r\n"))
+					continue
 				}
 			}
 			data[key] = val
 			conn.Write([]byte("+OK\r\n"))
-			runtime.Gosched()
+		default:
+			conn.Write([]byte(fmt.Sprintf("-Error uknown command %s\r\n", command)))
 		}
 	}
 }
