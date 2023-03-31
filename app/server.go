@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -79,18 +80,25 @@ func handleConnection(conn net.Conn) {
 		case "set":
 			key := list.Next().String()
 			val := list.Next().String()
-			if list.Size() > 2 && list.Next().String() == "PX" {
+			if list.Size() == 2 && list.Next().String() == "PX" {
 				timeoutMilliSecondString := list.Next().String()
 				timeoutMilliSeconds, err := strconv.Atoi(timeoutMilliSecondString)
-				if err != nil {
-					go func() {
-						time.Sleep(time.Millisecond * time.Duration(timeoutMilliSeconds))
+				if err == nil {
+					fmt.Printf("Scheduling deletion of key %s in %d milliseconds", key, timeoutMilliSeconds)
+					time.AfterFunc(time.Millisecond*time.Duration(timeoutMilliSeconds), func() {
+						fmt.Printf("Deleting key %s", key)
 						delete(data, key)
-					}()
+						fmt.Println("...Done")
+					})
+				} else {
+					message := fmt.Sprintf("Error parsing timeout value '%s', %v", timeoutMilliSecondString, err)
+					fmt.Println(message)
+					conn.Write([]byte("-" + message + "\r\n"))
 				}
 			}
 			data[key] = val
 			conn.Write([]byte("+OK\r\n"))
+			runtime.Gosched()
 		}
 	}
 }

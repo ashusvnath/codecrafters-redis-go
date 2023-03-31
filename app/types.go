@@ -1,9 +1,6 @@
 package main
 
-import (
-	"fmt"
-	"math"
-)
+import "fmt"
 
 type _respType int
 
@@ -38,65 +35,59 @@ func (rt _respType) String() string {
 	}
 }
 
-type RESPPrimitive interface {
-	Value() (RESPPrimitive, _respType)
-	String() string
-	Int() int
-}
-
-type Int int
-type String string
-type List struct {
-	data *llnode[RESPPrimitive]
+type SList struct {
+	data *llnode[Value]
 	size int
 }
 
-func (i Int) Value() (RESPPrimitive, _respType) {
-	return i, Number
+func (sl *SList) Append(v Value) {
+	sl.size++
+	sl.data = sl.data.Append(v)
 }
 
-func (i Int) String() string {
-	return fmt.Sprintf("%d", int(i))
+func (sl *SList) Next() Value {
+	result := sl.data.data
+	sl.data = sl.data.n
+	sl.size--
+	return result
 }
 
-func (i Int) Int() int {
-	return int(i)
+func (sl *SList) Size() int {
+	return sl.size
 }
 
-func (s String) Value() (RESPPrimitive, _respType) {
-	return s, SimpleString
+func (sl *SList) String() string {
+	return fmt.Sprintf("List(%d)[%s]", sl.size, sl.data.String())
 }
 
-func (s String) String() string {
-	return string(s)
+type Value struct {
+	typ _respType
+	val interface{}
 }
 
-func (s String) Int() int {
-	return math.MinInt
-}
-
-func (l *List) Value() (RESPPrimitive, _respType) {
-	return l, RespList
-}
-
-func (l List) String() string {
-	return fmt.Sprintf("%d %s\n", l.size, l.data.String())
-}
-
-func (l List) Int() int {
-	return math.MinInt
-}
-
-func (l *List) Size() int {
-	return l.size
-}
-
-func (l *List) Next() RESPPrimitive {
-	if l.size == 0 {
-		return nil
+func (v Value) String() string {
+	if v.typ == SimpleString || v.typ == BulkString || v.typ == RespErr {
+		str, _ := v.val.(string)
+		return str
 	}
-	l.size -= 1
-	retval := l.data.data
-	l.data = l.data.n
-	return retval
+	if v.typ == RespList {
+		return fmt.Sprintf("%s", v.val)
+	}
+	return ""
+}
+
+func (v Value) Int() int {
+	if v.typ == Number {
+		i, _ := v.val.(int)
+		return i
+	}
+	return 0
+}
+
+func (v Value) List() *SList {
+	if v.typ == RespList {
+		l, _ := v.val.(*SList)
+		return l
+	}
+	return nil
 }

@@ -11,61 +11,7 @@ type SimpleParser struct {
 	data io.Reader
 }
 
-type SList struct {
-	data *llnode[Value]
-	size int
-}
 
-func (sl *SList) Append(v Value) {
-	sl.size++
-	sl.data = sl.data.Append(v)
-}
-
-func (sl *SList) Next() Value {
-	result := sl.data.data
-	sl.data = sl.data.n
-	return result
-}
-
-func (sl *SList) Size() int {
-	return sl.size
-}
-
-func (sl *SList) String() string {
-	return fmt.Sprintf("List(%d)[%s]", sl.size, sl.data.String())
-}
-
-type Value struct {
-	typ _respType
-	val interface{}
-}
-
-func (v Value) String() string {
-	if v.typ == SimpleString || v.typ == BulkString || v.typ == RespErr {
-		str, _ := v.val.(string)
-		return str
-	}
-	if v.typ == RespList {
-		return fmt.Sprintf("%s", v.val)
-	}
-	return ""
-}
-
-func (v Value) Int() int {
-	if v.typ == Number {
-		i, _ := v.val.(int)
-		return i
-	}
-	return 0
-}
-
-func (v Value) List() *SList {
-	if v.typ == RespList {
-		l, _ := v.val.(*SList)
-		return l
-	}
-	return nil
-}
 
 func NewSimpleParser(conn io.Reader) *SimpleParser {
 	sp := &SimpleParser{conn}
