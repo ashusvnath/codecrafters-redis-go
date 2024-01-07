@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -130,7 +131,7 @@ func handleConnection(conn net.Conn) {
 		case "keys":
 			subCmd := strings.ToLower(list.Next().String())
 			if subCmd == "*" {
-				key, err := Read(config["dbfilename"])
+				key, err := Read(path.Join(config["dir"], config["dbfilename"]))
 				if err == nil {
 					conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(key), key)))
 				} else {
