@@ -133,7 +133,7 @@ func handleConnection(conn net.Conn) {
 			if subCmd == "*" {
 				key, err := Read(path.Join(config["dir"], config["dbfilename"]))
 				if err == nil {
-					conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(key), key)))
+					conn.Write([]byte(fmt.Sprintf("*1\r\n$%d\r\n%s\r\n", len(key), key)))
 				} else {
 					conn.Write([]byte(fmt.Sprintf("-ERROR %v\r\n", err.Error())))
 				}
