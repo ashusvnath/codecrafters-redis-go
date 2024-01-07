@@ -86,7 +86,7 @@ func readLength(reader *bufio.Reader) (int, error) {
 		}
 		b = b & 0x3F
 		var ulen uint16
-		err = binary.Read(bytes.NewReader([]byte{b, b2}), binary.NativeEndian, &ulen)
+		err = binary.Read(bytes.NewReader([]byte{b, b2}), binary.LittleEndian, &ulen)
 		if err != nil {
 			return -1, err
 		}
@@ -101,7 +101,7 @@ func readLength(reader *bufio.Reader) (int, error) {
 			return -1, errors.New("could not read 4 byte length")
 		}
 		var ulen uint32
-		err = binary.Read(bytes.NewReader(numAsBytes), binary.NativeEndian, &ulen)
+		err = binary.Read(bytes.NewReader(numAsBytes), binary.LittleEndian, &ulen)
 		if err != nil {
 			return -1, err
 		}
