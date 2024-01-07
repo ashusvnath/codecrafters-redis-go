@@ -82,7 +82,8 @@ func handleConnection(conn net.Conn) {
 			if ok {
 				replyString = fmt.Sprintf("$%d\r\n%s\r\n", len(result), result)
 			} else {
-				if dbFilename, ok := config["dbfilename"]; ok {
+				dbFilename, ok := config["dbfilename"]
+				if ok && dbFilename != "" {
 					keyFromFile, value, err := RDB_Read(path.Join(config["dir"], dbFilename))
 					if err != nil {
 						log.Printf("Error: %v", err)
