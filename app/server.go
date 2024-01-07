@@ -131,7 +131,7 @@ func handleConnection(conn net.Conn) {
 		case "keys":
 			subCmd := strings.ToLower(list.Next().String())
 			if subCmd == "*" {
-				key, err := Read(path.Join(config["dir"], config["dbfilename"]))
+				key, err := RDB_Read(path.Join(config["dir"], config["dbfilename"]))
 				if err == nil {
 					conn.Write([]byte(fmt.Sprintf("*1\r\n$%d\r\n%s\r\n", len(key), key)))
 				} else {
