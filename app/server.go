@@ -123,9 +123,21 @@ func handleConnection(conn net.Conn) {
 						len(configName), configName, len(configVal), configVal)
 					conn.Write([]byte(responseString))
 				} else {
-					conn.Write([]byte(fmt.Sprintf("-Error unknown config %s\r\n", configName)))
+					conn.Write([]byte(fmt.Sprintf("-ERROR unknown config %s\r\n", configName)))
 				}
 			}
+
+		case "keys":
+			subCmd := strings.ToLower(list.Next().String())
+			if subCmd == "*" {
+				key, err := Read(config["dbfilename"])
+				if err == nil {
+					conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(key), key)))
+				} else {
+					conn.Write([]byte(fmt.Sprintf("-ERROR %v\r\n", err.Error())))
+				}
+			}
+
 		default:
 			conn.Write([]byte(fmt.Sprintf("-Error unknown command %s\r\n", command)))
 		}
