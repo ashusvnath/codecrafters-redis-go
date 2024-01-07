@@ -82,16 +82,20 @@ func handleConnection(conn net.Conn) {
 			if ok {
 				replyString = fmt.Sprintf("$%d\r\n%s\r\n", len(result), result)
 			} else {
-				keyFromFile, value, err := RDB_Read(path.Join(config["dir"], config["dbfilename"]))
-				if err != nil {
-					log.Printf("Error: %v", err)
-					replyString = fmt.Sprintf("-ERROR reading rdb file %v", err)
-				} else {
-					if key == keyFromFile {
-						replyString = value
+				if dbFilename, ok := config["dbfilename"]; ok {
+					keyFromFile, value, err := RDB_Read(path.Join(config["dir"], dbFilename))
+					if err != nil {
+						log.Printf("Error: %v", err)
+						replyString = fmt.Sprintf("-ERROR reading rdb file %v", err)
 					} else {
-						replyString = fmt.Sprintf("-ERROR could not file key in file %v", err)
+						if key == keyFromFile {
+							replyString = fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)
+						} else {
+							replyString = fmt.Sprintf("-ERROR could not find key in file %v", err)
+						}
 					}
+				} else {
+					replyString = fmt.Sprintf("-ERROR could not find key %v", err)
 				}
 			}
 			conn.Write([]byte(replyString))
