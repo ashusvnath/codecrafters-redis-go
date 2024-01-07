@@ -16,23 +16,23 @@ const (
 	REDIS_RDB_OPCODE_AUX      = 0xFA
 )
 
-func RDB_Read(filepath string) (string, error) {
+func RDB_Read(filepath string) (string, string, error) {
 	file, err := os.Open(filepath)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	defer file.Close()
-	key, err := parseRDB(file)
-	return key, err
+	key, value, err := parseRDB(file)
+	return key, value, err
 }
 
-func parseRDB(file *os.File) (string, error) {
+func parseRDB(file *os.File) (string, string, error) {
 	reader := bufio.NewReader(file)
 	reader.Discard(9) //REDIS0010
 	for {
 		opcode, err := reader.ReadByte()
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 		log.Printf("OPCODE %x", opcode)
 
@@ -49,20 +49,29 @@ func parseRDB(file *os.File) (string, error) {
 			log.Printf("Reading DB info")
 			err := RDB_readMeta(reader)
 			if err != nil {
-				return "", err
+				return "", "", err
 			}
 
 		case REDIS_RDB_OPCODE_KEY:
 			log.Println("Found value 0. Reading string encoded key")
 			l, err := RDB_readLength(reader)
 			if err != nil {
-				return "", nil
+				return "", "", err
 			}
 			key, err := RDB_readString(l, reader)
 			if err != nil {
-				return "", err
+				return "", "", err
 			}
-			return key, nil
+
+			l, err = RDB_readLength(reader)
+			if err != nil {
+				return "", "", err
+			}
+			value, err := RDB_readString(l, reader)
+			if err != nil {
+				return "", "", err
+			}
+			return key, value, nil
 
 		default:
 			// Do nothing
@@ -157,10 +166,10 @@ func RDB_readIntAsString(l int, reader *bufio.Reader) (string, error) {
 func main1() {
 	dir, _ := os.Getwd()
 	log.Printf("working directory is %s", dir)
-	key, err := RDB_Read("dump.rdb")
+	key, value, err := RDB_Read("dump.rdb")
 	if err != nil {
 		log.Printf("Error: %v", err)
 		os.Exit(1)
 	}
-	log.Printf("Key: %v", key)
+	log.Printf("Key: %v, Value: %v", key, value)
 }

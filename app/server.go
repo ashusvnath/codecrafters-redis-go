@@ -82,7 +82,17 @@ func handleConnection(conn net.Conn) {
 			if ok {
 				replyString = fmt.Sprintf("$%d\r\n%s\r\n", len(result), result)
 			} else {
-				replyString = "$-1\r\n" //Null bulk string
+				keyFromFile, value, err := RDB_Read(path.Join(config["dir"], config["dbfilename"]))
+				if err != nil {
+					log.Printf("Error: %v", err)
+					replyString = fmt.Sprintf("-ERROR reading rdb file %v", err)
+				} else {
+					if key == keyFromFile {
+						replyString = value
+					} else {
+						replyString = fmt.Sprintf("-ERROR could not file key in file %v", err)
+					}
+				}
 			}
 			conn.Write([]byte(replyString))
 		case "set":
@@ -131,7 +141,7 @@ func handleConnection(conn net.Conn) {
 		case "keys":
 			subCmd := strings.ToLower(list.Next().String())
 			if subCmd == "*" {
-				key, err := RDB_Read(path.Join(config["dir"], config["dbfilename"]))
+				key, _, err := RDB_Read(path.Join(config["dir"], config["dbfilename"]))
 				if err == nil {
 					conn.Write([]byte(fmt.Sprintf("*1\r\n$%d\r\n%s\r\n", len(key), key)))
 				} else {
