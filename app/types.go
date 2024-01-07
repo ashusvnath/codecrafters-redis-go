@@ -35,6 +35,8 @@ func (rt _respType) String() string {
 	}
 }
 
+type Config map[string]string
+
 type SList struct {
 	data *llnode[Value]
 	size int

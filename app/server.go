@@ -1,7 +1,9 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -9,6 +11,18 @@ import (
 	"net"
 	"os"
 )
+
+var config Config
+
+func init() {
+	dir := flag.String("dir", "", "The directory where RDB files are stored")
+	dbfilename := flag.String("dbfilename", "", "The name of the RDB file")
+
+	flag.Parse()
+	config = make(map[string]string)
+	config["dir"] = *dir
+	config["dbfilename"] = *dbfilename
+}
 
 func main() {
 	fmt.Println("Logs from your program will appear here!")
@@ -34,20 +48,18 @@ func handleConnection(conn net.Conn) {
 
 	data := make(map[string]string)
 	for {
-		val, err := parser.Next()
-		fmt.Printf("Received command %s\n", val)
+		parsed, err := parser.Next()
+		log.Printf("Received command %s\n", parsed)
 		if err != nil {
-			errorString := fmt.Sprintf("ERROR encountered while reading request: %v. Closing connection", err)
-			fmt.Printf(errorString + "\n")
-			errorString = "-" + errorString + "\r\n"
+			errorString := fmt.Sprintf("-ERROR encountered while reading request: %v. Closing connection\r\n", err)
+			log.Printf("Response: %s", errorString)
 			conn.Write([]byte(errorString))
 			return
 		}
-		list, ok := val.val.(*SList)
+		list, ok := parsed.val.(*SList)
 		if !ok || list.Size() == 0 {
-			errorString := "ERROR 0 argument list"
-			fmt.Printf(errorString + "\n")
-			errorString = "-" + errorString + "\r\n"
+			errorString := "-ERROR 0 argument list\r\n"
+			log.Printf("Response: %s", errorString)
 			conn.Write([]byte(errorString))
 			return
 		}
@@ -81,9 +93,9 @@ func handleConnection(conn net.Conn) {
 					timeoutMilliSecondString := list.Next().String()
 					timeoutMilliSeconds, err := strconv.Atoi(timeoutMilliSecondString)
 					if err == nil {
-						fmt.Printf("Scheduling deletion of key %s in %d milliseconds", key, timeoutMilliSeconds)
+						log.Printf("Scheduling deletion of key %s in %d milliseconds", key, timeoutMilliSeconds)
 						time.AfterFunc(time.Millisecond*time.Duration(timeoutMilliSeconds), func() {
-							fmt.Printf("Deleting key %s", key)
+							log.Printf("Deleting key %s", key)
 							delete(data, key)
 							fmt.Println("...Done")
 						})
@@ -102,8 +114,20 @@ func handleConnection(conn net.Conn) {
 			}
 			data[key] = val
 			conn.Write([]byte("+OK\r\n"))
+		case "config":
+			subCmd := strings.ToLower(list.Next().String())
+			if subCmd == "get" {
+				configName := strings.ToLower(list.Next().String())
+				if configVal, ok := config[configName]; ok {
+					responseString := fmt.Sprintf("*2\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n",
+						len(configName), configName, len(configVal), configVal)
+					conn.Write([]byte(responseString))
+				} else {
+					conn.Write([]byte(fmt.Sprintf("-Error unknown config %s\r\n", configName)))
+				}
+			}
 		default:
-			conn.Write([]byte(fmt.Sprintf("-Error uknown command %s\r\n", command)))
+			conn.Write([]byte(fmt.Sprintf("-Error unknown command %s\r\n", command)))
 		}
 	}
 }
