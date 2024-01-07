@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"log"
@@ -84,19 +85,19 @@ func handleConnection(conn net.Conn) {
 			} else {
 				dbFilename, ok := config["dbfilename"]
 				if ok && dbFilename != "" {
-					keyFromFile, value, err := RDB_Read(path.Join(config["dir"], dbFilename))
+					dataFromFile, err := RDB_Read(path.Join(config["dir"], dbFilename))
 					if err != nil {
 						log.Printf("Error: %v", err)
 						replyString = fmt.Sprintf("-ERROR reading rdb file %v", err)
 					} else {
-						if key == keyFromFile {
+						if value, ok := dataFromFile[key]; ok {
 							replyString = fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)
 						} else {
 							replyString = fmt.Sprintf("-ERROR could not find key in file %v", err)
 						}
 					}
 				} else {
-					replyString = fmt.Sprintf("-ERROR could not find key %v", err)
+					replyString = "$-1\r\n"
 				}
 			}
 			conn.Write([]byte(replyString))
@@ -146,9 +147,14 @@ func handleConnection(conn net.Conn) {
 		case "keys":
 			subCmd := strings.ToLower(list.Next().String())
 			if subCmd == "*" {
-				key, _, err := RDB_Read(path.Join(config["dir"], config["dbfilename"]))
+				dataFromFile, err := RDB_Read(path.Join(config["dir"], config["dbfilename"]))
 				if err == nil {
-					conn.Write([]byte(fmt.Sprintf("*1\r\n$%d\r\n%s\r\n", len(key), key)))
+					buf := &bytes.Buffer{}
+					buf.WriteString(fmt.Sprintf("*%d\r\n", len(dataFromFile)))
+					for key := range dataFromFile {
+						buf.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(key), key))
+					}
+					conn.Write(buf.Bytes())
 				} else {
 					conn.Write([]byte(fmt.Sprintf("-ERROR %v\r\n", err.Error())))
 				}
